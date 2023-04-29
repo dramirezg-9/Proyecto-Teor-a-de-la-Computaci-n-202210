@@ -1,0 +1,561 @@
+\documentclass[12pt]{amsart}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{ tipa }
+\usepackage{lipsum} %Este paquete simplemente genera texto para el ejemplo
+\usepackage{hyperref} % este paquete genera hiper links
+\usepackage{amssymb} % esta paquete es para usar simbolos matematicos tipo
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{color}
+\usepackage{textcomp}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{phonetic}
+\usepackage{bm}
+\usepackage{pst-all}
+\usepackage{url}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\renewcommand\thesubsection{\Alph{subsection}}
+\usepackage{tikz}
+\usetikzlibrary{shapes}
+\usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{arrows}
+\usepackage{subfig}
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+
+
+
+\graphicspath{{./images/}}
+
+%New colors defined below
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    literate={ĉ}{{\^c}}1
+        {Ĉ}{{\^C}}1
+}
+
+%Code listing style named "mystyle"
+\lstdefinestyle{mystyle}{
+  backgroundcolor=\color{backcolour}, commentstyle=\color{codegreen},
+  keywordstyle=\color{magenta},
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\footnotesize,
+  breakatwhitespace=false,         
+  breaklines=true,                 
+  captionpos=b,                    
+  keepspaces=true,                 
+  numbers=left,                    
+  numbersep=5pt,                  
+  showspaces=false,                
+  showstringspaces=false,
+  showtabs=false,                  
+  tabsize=2
+}
+
+%%---------------------------------------------------------------
+%% AMS-LaTeX Paper 
+%%---------------------------------------------------------------
+
+\def\NN{\ensuremath{\mathbb{N}}}
+\def\ZZ{\ensuremath{\mathbb{Z}}}
+\def\QQ{\ensuremath{\mathbb{Q}}}
+\def\RR{\ensuremath{\mathbb{R}}}
+\def\CC{\ensuremath{\mathbb{C}}}
+\def\FF{\ensuremath{\mathbb{F}}}
+\def\L{\ensuremath{\mathcal{L}}}
+\usepackage{lastpage}
+\usepackage[none]{hyphenat}
+
+%%--MATH---------------------------------------------------------
+
+%%--OTHER ENVIRONMENTS--------------------------------------
+\renewcommand{\labelenumi}{{\bf \theenumi.}}
+\renewcommand{\labelenumii}{{\bf (\theenumii)}}
+\renewcommand{\labelenumiii}{{\bf (\theenumiii)}}
+%%----------------------------------------------------------
+
+\lstset{style=mystyle}
+
+\title{Reconocimiento de Lenguajes Regulares Desconocidos en Tiempo Polinomial}
+\author{Diego Ramírez }
+\address{ Departamento de Matemáticas, Universidad de los Andes, Bogotá, Colombia}
+\email{d.ramirezg@uniandes.edu.co}
+
+\author{Thomas Gómez }
+\address{ Departamento de Matemáticas, Universidad de los Andes, Bogotá, Colombia}
+\email{t.gomezs2@uniandes.edu.co}
+
+\begin{document}
+
+\maketitle
+
+\section{Introducción}
+
+En el siguiente documento se explorará un algoritmo presentado en el paper \textit{Learning Regular Sets from Queries and Counterexamples} de \textit{Dana Angluin} para encontrar autómatas regulares que reconozcan un lenguaje regular dado una muestra del lenguaje regular. En particular, el artículo tiene dos objetivos: explicar de manera concisa y clara el funcionamiento del algoritmo y su relación con la teoría de la computación; también entender el desempeño en la práctica del algoritmo. Lo anterior se logrará con la siguiente estructura: primeron se desarrollarán los conceptos más relevantes para entender el algoritmo; segundo, se explicará el funcionamiento del algoritmo; tercero, se presentarán los puntos clave de una implementación del algoritmo; luego se ofrecerán ejemplos relevantes de la aplicación de este algoritmo; y finalmente presentaremos nuestras conclusiones.
+
+\section{Conceptos Clave}
+
+\subsection{Aprendiz}
+En este documento, el algoritmo de aprendizaje cuyo objetivo es reconocer el lenguaje regular se lamará "Aprendiz".
+
+\subsection{Maestro}
+La fuente de ejemplos y contraejemplos del lenguaje regular la llamaremos Maestro. Usando al Maestro se entrena al aprendiz.
+\subsubsection{Maestro Mínimo Adecuado}
+Un Maestro Mínimo Adecuado tiene el objetivo de ayudar al Aprendiz a reconocer el lenguaje, sin "dar demasiada ayuda". Con lo último, nos referimos a que las capacidades del Maestro deben ser razonables en un contexto práctico. Decimos que un maestro mínimo adecuado debe ser capaz de responder en tiempo polinomial:
+
+\begin{enumerate}
+    \item $MEMBER(\omega)$ Una \textit{consulta de pertenencia} de una cadena $\omega \in \Sigma^{*}$ al lenguaje regular desconocido.
+    \item $EQUIV(M)$ Una \textit{conjetura} que consiste de una descripción $M$ de un lenguaje regular $S$. Si el lenguaje regular y $S$ son el mismo, el algoritmo responde que sí; si el lenguaje regular y $S$ son diferentes, se devuelve un \textit{contraejemplo} (una cadena en la diferencia simétrica). \\
+\end{enumerate}
+
+Nótemos que, para que un Maestro sea capaz de responder una conjetura, es necesario que los lenguajes regulares se presenten en un cierto lenguaje; en este caso, los lenguajes regulares se presentarán como autómatas finitos deterministas. La idea es que, suponiendo que existe un Autómata Finito Determinista de $n$ estados que reconoce el Lenguaje Regular desconocido, el Maestro $T^{*}$ responde cada pregunta en tiempo polinomial sobre $n$. \\
+
+La razón por la cuál necesitamos que un Maestro responda las conjeturas se debe a que está demostrado que el problema de aprendizaje usando sólo preguntas del primer tipo es NP-Difícil.
+
+\subsection{Tablas de Observación}
+
+Dado un lenguaje regular desconocido $U$ sobre el alfabeto $\Sigma$, el Aprendiz $A^{*}$ tiene la información de sobre cadenas que pertecen y no pertenecen a $U$, organizada en una \textit{Tabla de Observación}, compuesta por:
+
+\subsubsection{Conjunto Cerrado por Prefijos}
+
+Sea $\omega \in \Sigma^{*}$, $p$ es un prefijo de $\omega$ si y solo si $\exists x: \omega = px$.Decimos que $S \subseteq \Sigma^{*}$ es cerrado por prefijos si y solo si cada prefijo de cada miembro del conjunto, es también miembro del conjunto. Por ejemplo, si tenemos el conjunto:
+
+\[ S = \{ abba, aa \} \]
+
+el conjunto más pequeño que es cerrado por prefijos es:
+
+\[ S^{*} = \{ \lambda, a, ab, abb, abba, aa \} \]
+
+(Nóte que $\lambda$ está en todo conjunto cerrado por prefijos no vacío.)
+
+\subsubsection{Conjunto Cerrado por Sufijos}
+
+$E \subseteq \Sigma^{*}$ es definido análogamente.
+
+\subsubsection{Mapa}
+
+Una función finita $T: (S \cdot E) \cup (S \cdot \Sigma \cdot E) \longrightarrow \{0,1\}$. Es decir, para una cadena  $\omega = sae$ dónde $s \in S$ ($s$ un prefijo), $a \in \Sigma \cup \{ \epsilon \}$ (a es un carácter ó es vacía) y $e \in E$ ($e$ es un sufijo), $T(\omega = 1)$ si y solo si $\omega \in U$. \\
+
+La tabla la denotamos por la tupla $(S,E,T)$. Una forma intuitiva de ver esta tabla, es una matriz con filas $S \cup (S \cdot A)$ y columnas $E$, dónde la entrada de la fila $s$ y columna $e$ es $T(s \cdot e)$. \\
+
+\subsubsection{Tabla de Observación Cerrada}
+
+La idea de las filas de la tabla de observación es que cada una represente un estado del autómata finito determinista (cada entrada de la fila distingue experimentos para estos estados). Una tabla de observación es cerrada si $\forall t \in S \cdot A, \exists s \in S: fila(t) = fila(s)$, es decir, todos los estados que conocemos están en $S$.
+
+\subsubsection{Tabla de Observación Consistente y Cerrada}
+
+Una tabla de observación es consistente si para $\forall s_1, s_2 \in S$, se cumple que $fila(s_1) = fila(s_2)$ entonces $fila(s_1 a) = fila(s_2 a)$. (Los estados de aceptación se mantienen consistentes). \\
+
+\section{Algoritmo de Aprendizaje}
+
+\subsection{Autómata Inducido por la Tabla de Observación}
+
+A partir de una tabla de observación consistente y cerrada $(S,E,T)$ se puede generar el autómata $M(S,E,T)$ sobre $\Sigma$ de la siguiente manera: \\
+
+\[ Q = \{ fila(s): s \in S \} \]
+
+\[ q_0 = fila(\epsilon) \]
+
+\[ F = \{ fila(s): s \in S, T(s) = 1 \} \]
+
+\[ \delta(fila(s),a) = fila(s \cdot a) \]
+
+Todas las propiedades en la construcción de la tabla son usadas para demostrar varias propiedades del autómata. Esto con la meta final de demostar que cualquier autómata que sea consistente con $T$ pero que no es equivalente con $M(S,E,T)$ debe tener más estados.
+
+\subsection{Funcionamiento del Aprendiz}
+
+Describiremos el funcionamiento del aprendiz en el siguiente pseudocódigo:
+
+\begin{algorithm}
+\caption{Aprendiz}
+\begin{algorithmic}[1]
+\State $S := \{ \lambda \}$
+\State $E := \{ \lambda \}$
+\State Construct the initial observation table $(S,E,T)$ using $MEMBER(s)$
+\While{true}
+    \While{$(S,E,T)$ no es cerrado o no es consistente:}
+        \If{$(S,E,T)$ is not consistent}
+            \State sea $s_1, s_2 \in S, a \in A, e \in E$ t.q. $row(s_1) = row(s_2)$ but $T(s_1 a e) \neq T(s_2 a e)$
+            \State añadir $ae$ a $E$
+        \Else
+            \State sea $s_1 \in S, a \in A$ t.q. $\not\exists s_2 \in S: fila(s_1 a) = fila(s_2)$
+            \State añadir $s_1 a$ a $S$
+        \EndIf
+        \State actualizar $(S,E,T)$ usando $MEMBER(s)$
+    \EndWhile
+    \State $c := EQUIV(M(S,E,T))$
+    \If{$c = true$}
+        \State return $M$
+    \Else
+        \State añadir $c$ y sus prefijos a $S$
+        \State actualizar $(S,E,T)$ usando $MEMBER(s)$
+    \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+Esencialmente, lo que está haciendo el algoritmo es completar $(S,E,T)$ dependiendo del problema. Si $(S,E,T)$ es inconsistente, entonces se debe añadir un sufijo para que $fila(s_1) \neq fila(s_2)$. Si $(S,E,T)$ no es cerrado, entonces se tiene que añadir a $S$ el estado que está en $S \cdot A$ pero no está en $S$. Finalmente, una vez tenemos una tabla consistente y cerrada, computamos el autómata, el cual le preguntamos al maestro si es correcto o no. Si no es correcto, se toma un contraejemplo y se corrige la tabla. \\
+
+\subsubsection{Es Correcto}
+
+Suponiendo que el Maestro sea Mínimo Adecuado, entonces es fácil ver que si el algoritmo retorna algún autómata, entonces es correcto.
+
+\subsubsection{Termina y es Eficiente}
+
+Observemos que, sea $n$ el número de valores de las diferentes filas de la tabla, cualquier autómata consistente con la tabla $(S,E,T)$ debe tener al menos $n$ estados. \\
+
+Cuando $s \cdot a$ es añadido a $S$ porque la tabla no es cerrada, se está añadiendo un estado. Cuando $a \cdot e$ es añadido a $E$ porque la tabla no es consistente, se está añadiendo un estado. Cuando se encuentra que la conjetura $M$ es falsa, se está añadiendo \textit{por lo menos} un estado. Luego, las repeticiones del loop interno y el loop externo suman a lo sumo $n-1$. Ya que cada operación del algoritmo se puede hacer en tiempo finito, el algoritmo termina. \\
+
+Sea $n$ el número de estados de una máquina que reconoce a $U$, y $m$ la longitud máxima de un contraejemplo presentado por el Maestro, queremos ver que el algoritmo termina en tiempo polinomial sobre $n,m$. \\
+
+Nótemos que ya que solamente se agregan cadenas a $E$ cuando la tabla es inconsistente, el tamaño de $E$ es a lo sumo $n$. Cada vez que la tabla no es cerrada, se agrega un elemento a $S$, y cuando la conjetura es falsa, se agrega a lo sumo $m$ elementos a $S$. Luego el tamaño de $S$ es a lo sumo $mn$, y el tamaño de $S \cup S \cdot \Sigma$ es a lo sumo $mn(|\Sigma| + 1)$. Luego el número de entradas de la tabla es a lo sumo $mn^2 (|\Sigma| + 1)$, el cuál es el número total de llamados a $MEMBER(s)$ que se hacen. Ya que el tamaño de las cadenas representadas en la tabla es $O(n+m)$, el tamaño total de la tabla es a lo sumo $O(mn^3 + m^2 n^2 )$. \\
+
+Aunque se puede implementar de manera más eficiente, verificar que $(S,E,T)$ es cerrado se puede hacer de la siguiente manera:
+
+\begin{algorithm}
+\caption{Cerradura}
+\begin{algorithmic}[1]
+\Procedure{es\_cerrado}{S,E,T}
+    \For{$sa \in S \cdot \Sigma$}
+        \For{$x \in S$}
+            \If{$fila(sa) = fila(x)$}
+                \State break
+            \EndIf
+        \EndFor
+        \If{No se encontró $x \in S: fila(x) = (sa)$}
+           \State \Return{sa}
+        \EndIf
+    \EndFor
+    \State \Return{true}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+El procedimiento evidentemente es correcto y termina. Hay a lo sumo $|\Sigma|mn$ elementos en $S \cdot \Sigma$ y $mn$ elementos en $S$; luego hay a lo sumo $m^2 n^2 |\Sigma|$ comparaciones. Ya que hay a lo sumo $n$ elementos en cada fila, entonces cada comparación es de tiempo $O(m+n)$. Luego el procedimiento ocurre en tiempo $O(m^3 n^2+ m^2 n^3)$. Este procedimiento es llamado a lo sumo $n-1$ veces. \\
+
+Por otro lado, verificar que $(S,E,T)$ es consistente se puede hacer de la siguiente manera: \\
+
+\begin{algorithm}
+\caption{Consistencia}
+\begin{algorithmic}[1]
+\Procedure{es\_consistente}{S,E,T}
+    \For{ $s_1,s_2 \in S: s_1 \neq s_2$}
+        \If{$fila(s_1) = fila(s_2)$}
+            \For{$a \in \Sigma$}
+                \For{$e \in E$}
+                    \If{$T(s_1 a e) \neq fila(s_2 a e)$}
+                        \State \Return{a,e}
+                    \EndIf
+                \EndFor
+            \EndFor
+        \EndIf
+    \EndFor
+    \State \Return{true}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+El loop más externo se repite a lo sumo $\binom{nm}{2} \leq n^{2} m^{2}$ veces, el loop intermedio $|\Sigma|$ veces y el loop interno a lo sumo $n$ veces. Las operaciones dentro del loop interno se pueden hacer en tiempo $O(m)$. Luego el procedimiento toma $O(m^3 n^3)$. Este procedimiento es llamado a lo sumo $n-1$ veces. \\
+
+Entonces, sea $k_1, k_2: MEMBER(s) \in TIME(m^{k_1} n^{k_2})$ y $k_3, k_4: EQUIV(M) \in TIME(m^{k_3} n^{k_4})$, tenemos que la complejidad temporal del algoritmo Aprendiz es: $O(m^{k_1+1} n^{k_2+2} + m^{k_3} n^{k_4 + 1} + m^3 n^{4})$. Si asumimos que $m \leq p(n)$ para algún polinomio $p$, entonces $L^{*} \in P(n)$. \\
+
+Finalmente, cabe notar que el número de estados del autómata $M$ retornado por $L^{*}$ es mínimo. \\
+
+\section{Implementación}
+
+\subsection{El Maestro}
+
+Aunque en el artículo de  Angluin se habla de Maestros estocásticos (es decir, que con gran probabilidad llegan a una respuesta correcta), en este documento se utlizará un Maestro estocástico. El Maestro en este caso, podrá llamar a un autómata determinista que reconozca el lenguaje que se quiere aprender para determinar si un miembro hace o no parte del lenguaje, y siempre que los autómatas no sean equivalentes, podrá en tiempo polinomial extraer un elemento $w$ de la diferencia simétrica de longitud a lo sumo $n^2-1$, lo cuál lo convierte en determinista. \\
+
+\begin{lstlisting}[language = Python]
+class Teacher:
+    def member(self, w: str):
+        return self.dfa.accept(w)
+    
+    def equiv(self, M: DFA):
+        return symmetric_difference(self.dfa, M)
+\end{lstlisting}
+
+El método de diferencia simétrica devuelve un elemento $w$ de la diferencia simétrica si no es vacía; en caso de ser vacía, el método retorna $None$. Esta implementación utiliza la misma idea que el punto 3 de la tarea 4: para ver si dos autómatas son diferentes, se prueban todas las cadenas relevantes para ver si en algún momento un autómata acepta la cadena pero el otro no. Sin embargo, la manera en la que se implementa en la Tarea 4 implica que necesitamos probar todas las cadenas de longitud a lo sumo $n^{2}-1$, lo cuál hace que el tiempo del algoritmo sea de complejidad temporal $\Omega(2^{n^2})$. \\
+
+Para lograr computar la diferencia en tiempo polinomial, el algoritmo hace uso de una tabla dinámica, donde se guardan las combinaciones de estados $(q_1, q_2)$ ya visitados; de esta manera, si volvemos a esa combinación de estados, sabemos que no debemos visitar las cadenas que tienen como prefijo la cadena actual. De esta manera, se hacen a lo sumo $n^{2}$ llamadas de $\_\_symmetric\_difference$. \\
+
+Ya que las operaciones dentro del método (diferentes a la recursión) son de complejidad a lo sumo $O(n)$, entonces el algoritmo tiene complejidad $O(n^{3})$ .
+
+\begin{lstlisting}[language = Python]
+def __symmetric_difference(dfa1: DFA, dfa2: DFA, q0_1,
+    q0_2, Q: dict)->str:
+    if (q0_1 in dfa1.F) != (q0_2 in dfa2.F):
+        return ""
+    Q[(q0_1, q0_2)] = True
+    Sigma = list(dfa1.d[dfa1.q0].keys())
+    for a in Sigma:
+        q1 = dfa1.d[q0_1][a]
+        q2 = dfa2.d[q0_2][a]
+        if (q1,q2) not in Q:
+            s = __symmetric_difference(dfa1,dfa2,
+                q1, q2, Q)
+            if s != None:
+                return a+s
+    return None
+
+def symmetric_difference(dfa1: DFA, dfa2: DFA) -> str:
+    return __symmetric_difference(dfa1, dfa2, dfa1.q0,
+        dfa2.q0, {})
+\end{lstlisting}
+
+\subsection{El Aprendiz}
+
+La implementación del aprendiz se sigue en su mayor parte del pseudocódigo. Lo único que cabe destacar es la implementación de la inducción del autómata. Aunque la idea es esencialmente la misma que en la teoría, para implementarlo en la práctica se necesitó de algunos pasos extra. \\
+
+La implementación de la función de transición fue hecha con diccionarios, lo cuál implica que los estados de un autómata deben ser objetos de tipo \textit{hashable}, por lo cuál no se podían utilizar directamente las filas (las cuales son listas) como estados del autómata. Para esto, se enumeraron las filas, y utilizamos los enumeradores como los estados del automata.
+
+\begin{lstlisting}[language= Python]
+def __induct_DFA(S: list, E: list, T: dict,
+Sigma: list) -> DFA:
+    i = 0
+    q0 = 0
+    Q = []
+    F = {}
+    d = {}
+    for s in S:
+        q = [T[s+e] for e in E]
+        if q not in Q:
+            Q.append(q)
+            if T[s]:
+                F[i] = q
+            transitions = {}
+            for a in Sigma:
+                transitions[a] = [T[s+a+e] for e in E]
+            d[i] = transitions
+            i+= 1
+    new_Q = list(range(len(Q)))
+    for i in d:
+        for a in d[i]:
+            d[i][a] = Q.index(d[i][a])
+    return DFA(new_Q,q0,list(F.keys()),d)
+\end{lstlisting}
+
+\section{Ejemplos}
+
+\subsection{Ejemplo 1}
+
+Sea $L_1 = \{ w \in \{0,1\}^{*}:$ w termina en $1 \}$. Un autómata que reconoce este lenguaje es:
+
+\begin{tikzpicture}  
+  [scale=.9,auto=center] % here, node/.style is the style pre-defined, that will be the default layout of all the nodes. You can also create different forms for different nodes.
+  
+  \tikzstyle{principal} = [shape=circle,fill=white!20, draw];
+  \tikzstyle{finalstate} = [shape=circle,fill=white!20, draw, double, double distance = 1mm]
+  \node[principal] (q0) at (1,1) {q0};
+  \node[finalstate] (q1) at (3,1) {q1};
+  
+  \draw[-to, bend right=45]  (q0) edge node[fill=white] {1} (q1);
+  \draw[-to, bend right=45]  (q1) edge node[fill=white] {0} (q0);
+  \draw[-to, loop above]  (q0) edge node[fill=white] {0} (q0);
+  \draw[-to, loop above]  (q1) edge node[fill=white] {1} (q1);
+  
+\end{tikzpicture}
+
+Como es de esperar, el Aprendiz devuelve un autómata isomorfo a este. \\
+
+\subsection{Ejemplo 2}
+
+Sea $L_2 = \{ w \in \{0,1\}^{*}:$ w tiene un número impar de $1s \}$. Un autómata que reconoce este lenguaje es:
+
+\begin{tikzpicture}  
+  [scale=.9,auto=center] % here, node/.style is the style pre-defined, that will be the default layout of all the nodes. You can also create different forms for different nodes.
+  
+  \tikzstyle{principal} = [shape=circle,fill=white!20, draw];
+  \tikzstyle{finalstate} = [shape=circle,fill=white!20, draw, double, double distance = 1mm]
+  \node[principal] (q0) at (1,1) {q0};
+  \node[finalstate] (q1) at (3,1) {q1};
+  
+  \draw[-to, bend right=45]  (q0) edge node[fill=white] {1} (q1);
+  \draw[-to, bend right=45]  (q1) edge node[fill=white] {1} (q0);
+  \draw[-to, loop above]  (q0) edge node[fill=white] {0} (q0);
+  \draw[-to, loop above]  (q1) edge node[fill=white] {0} (q1);
+  
+\end{tikzpicture}
+
+Como es de esperar, el Aprendiz devuelve un autómata isomorfo a este. \\
+
+\subsection{Ejemplo 3}
+
+Sea $L_2 = \{ w \in \{0,1\}^{*}:$ el número en binario que w representa es divisible entre $3 \}$. Un autómata que reconoce este lenguaje es:
+
+\begin{tikzpicture}
+  [scale=.9,auto=center] % here, node/.style is the style pre-defined, that will be the default layout of all the nodes. You can also create different forms for different nodes.
+    
+  \tikzstyle{principal} = [shape=circle,fill=white!20, draw];
+  \tikzstyle{finalstate} = [shape=circle,fill=white!20, draw, double, double distance = 1mm]
+
+  \node[fill=white] (i) at (1,3.5) {};
+  \node[finalstate] (q0) at (3,3.5) {q0};
+  \node[finalstate] (q1) at (6,6) {q1};
+  \node[principal] (q2) at (9,6) {q2};
+  \node[principal] (q3) at (12,3.5) {q3};
+  \node[principal] (q4) at (9,1) {q4};
+  \node[principal] (q5) at (6,1) {q5};
+
+  \draw[-to]  (i) edge (q0);
+  \draw[-to, bend right = 30]  (q0) edge node[fill=white] {$0$} (q1);
+  \draw[-to, bend right = 30]  (q1) edge node[fill=white] {$0$} (q0);
+  \draw[-to, bend right = 30]  (q2) edge node[fill=white] {$0$} (q3);
+  \draw[-to, bend right = 30]  (q3) edge node[fill=white] {$0$} (q2);
+  \draw[-to, bend right = 30]  (q4) edge node[fill=white] {$0$} (q5);
+  \draw[-to, bend right = 30]  (q5) edge node[fill=white] {$0$} (q4);
+  \draw[-to, bend right = 30]  (q0) edge node[fill=white] {$1$} (q5);
+  \draw[-to, bend right = 30]  (q5) edge node[fill=white] {$1$} (q0);
+  \draw[-to, bend right = 30]  (q1) edge node[fill=white] {$1$} (q2);
+  \draw[-to, bend right = 30]  (q2) edge node[fill=white] {$1$} (q1);
+  \draw[-to, bend right = 30]  (q3) edge node[fill=white] {$1$} (q4);
+  \draw[-to, bend right = 30]  (q4) edge node[fill=white] {$1$} (q3);
+\end{tikzpicture}
+
+Por su parte, el Aprendiz retorna el autómata:
+
+\begin{tikzpicture}  
+  [scale=.9,auto=center] % here, node/.style is the style pre-defined, that will be the default layout of all the nodes. You can also create different forms for different nodes.
+  
+  \tikzstyle{principal} = [shape=circle,fill=white!20, draw];
+  \tikzstyle{finalstate} = [shape=circle,fill=white!20, draw, double, double distance = 1mm]
+  \node[finalstate] (q0) at (1,1) {q0};
+  \node[principal] (q1) at (3,3) {q1};
+  \node[principal] (q2) at (5,1) {q2};
+  
+  \draw[-to, bend right=30]  (q0) edge node[fill=white] {1} (q1);
+  \draw[-to, bend right=30]  (q1) edge node[fill=white] {1} (q0);
+  \draw[-to, loop left]  (q0) edge node[fill=white] {0} (q0);
+  \draw[-to, bend right=30]  (q1) edge node[fill=white] {0} (q2);
+  \draw[-to, bend right=30]  (q2) edge node[fill=white] {0} (q1);
+  \draw[-to, loop right]  (q2) edge node[fill=white] {1} (q2);
+  
+\end{tikzpicture}
+
+Este autómata es equivalente al primer autómata y tiene menos estados. \\
+
+\subsection{Ejemplo 4}
+
+Sea $L_4 = \{ w \in \{0,1\}^{*}:$ $|w| = 6n+k$, $k \in \{0,2,3,4\} \}$. Un autómata que reconoce este lenguaje es:
+
+\begin{tikzpicture}
+  [scale=.9,auto=center] % here, node/.style is the style pre-defined, that will be the default layout of all the nodes. You can also create different forms for different nodes.
+    
+  \tikzstyle{principal} = [shape=circle,fill=white!20, draw];
+  \tikzstyle{finalstate} = [shape=circle,fill=white!20, draw, double, double distance = 1mm]
+
+  \node[fill=white] (i) at (1,3.5) {};
+  \node[finalstate] (q0) at (3,3.5) {q0};
+  \node[principal] (q1) at (6,6) {q1};
+  \node[finalstate] (q2) at (9,6) {q2};
+  \node[finalstate] (q3) at (12,3.5) {q3};
+  \node[finalstate] (q4) at (9,1) {q4};
+  \node[principal] (q5) at (6,1) {q5};
+
+  \draw[-to]  (i) edge (q0);
+  \draw[-to]  (q0) edge node[fill=white] {$0,1$} (q1);
+  \draw[-to]  (q2) edge node[fill=white] {$0,1$} (q3);
+  \draw[-to]  (q4) edge node[fill=white] {$0,1$} (q5);
+  \draw[-to]  (q1) edge node[fill=white] {$0,1$} (q2);
+  \draw[-to]  (q3) edge node[fill=white] {$0,1$} (q4);
+  \draw[-to]  (q5) edge node[fill=white] {$0,1$} (q0);
+\end{tikzpicture}
+
+Como es de esperar, el Aprendiz devuelve un autómata isomorfo a este. \\
+
+\subsection{Ejemplo 5}
+
+Sea $L_4 = \{ w \in \{c,a,t\}^{*}:$ $w$ contiene la subcadena $cat \}$. Un autómata que reconoce este lenguaje es:
+
+\begin{tikzpicture}
+  [scale=.9,auto=center] % here, node/.style is the style pre-defined, that will be the default layout of all the nodes. You can also create different forms for different nodes.
+    
+  \tikzstyle{principal} = [shape=circle,fill=white!20, draw];
+  \tikzstyle{finalstate} = [shape=circle,fill=white!20, draw, double, double distance = 1mm]
+
+  \node[fill=white] (i) at (1,1) {};
+  \node[principal] (q0) at (3,1) {q0};
+  \node[principal] (q1) at (6,4) {q1};
+  \node[principal] (q2) at (9,4) {q2};
+  \node[finalstate] (q3) at (12,1) {q3};
+  \node[principal] (q4) at (7.5,1) {q4};
+
+  \draw[-to]  (i) edge (q0);
+  \draw[-to, loop above]  (q0) edge node[fill=white] {$a,t$} (q0);
+  \draw[-to]  (q0) edge node[fill=white] {$c$} (q1);
+  \draw[-to, bend right=45]  (q2) edge node[fill=white] {$c$} (q1);
+  \draw[-to, bend right=45]  (q1) edge node[fill=white] {$a$} (q2);
+  \draw[-to, loop left]  (q1) edge node[fill=white] {$c$} (q1);
+  \draw[-to]  (q1) edge node[fill=white] {$t$} (q4);
+  \draw[-to]  (q2) edge node[fill=white] {$a$} (q4);
+  \draw[-to, bend left=30]  (q4) edge node[fill=white] {$c$} (q1);
+  \draw[-to, loop right]  (q4) edge node[fill=white] {$a,t$} (q4);
+  \draw[-to, loop right]  (q3) edge node[fill=white] {$c,a,t$} (q3);
+  \draw[-to]  (q2) edge node[fill=white] {$t$} (q3);
+\end{tikzpicture}
+
+Por su parte, el Aprendiz retorna el autómata:
+
+\begin{tikzpicture}
+  [scale=.9,auto=center] % here, node/.style is the style pre-defined, that will be the default layout of all the nodes. You can also create different forms for different nodes.
+    
+  \tikzstyle{principal} = [shape=circle,fill=white!20, draw];
+  \tikzstyle{finalstate} = [shape=circle,fill=white!20, draw, double, double distance = 1mm]
+
+  \node[fill=white] (i) at (1,1) {};
+  \node[principal] (q0) at (4,1) {q0};
+  \node[principal] (q1) at (7,1) {q1};
+  \node[principal] (q2) at (10,1) {q2};
+  \node[finalstate] (q3) at (13,1) {q3};
+
+  \draw[-to]  (i) edge (q0);
+  \draw[-to, loop above]  (q0) edge node[fill=white] {$a,t$} (q0);
+  \draw[-to, loop above]  (q1) edge node[fill=white] {$c$} (q1);
+  \draw[-to, bend right=30]  (q2) edge node[fill=white] {$c$} (q1);
+  \draw[-to, bend right=30]  (q1) edge node[fill=white] {$a$} (q2);
+  \draw[-to]  (q2) edge node[fill=white] {$t$} (q3);
+  \draw[-to, bend right=30]  (q0) edge node[fill=white] {$c$} (q1);
+  \draw[-to, bend right=30]  (q1) edge node[fill=white] {$t$} (q0);
+  \draw[-to, bend left=45]  (q2) edge node[fill=white] {$a$} (q0);
+  \draw[-to, loop above]  (q3) edge node[fill=white] {$c,a,t$} (q3);
+\end{tikzpicture}
+
+Este autómata es equivalente al primer autómata y tiene menos estados. \\
+
+\section{Discusión y Conclusiones}
+
+Aunque sea NP-Difícil encontrar un autómata finito determinista que reconozca un lenguaje regular desconocido $U$ usando unicamente un oráculo de pertenencia, como pudimos ver a lo largo del documento, es mucho más fácil encontrar el autómata finito determinista si se tiene un oráculo de diferencia simétrica. Esto es útil para aplicaciones de procesamiento de grandes volumenes de datos que pueden ser estructurados como parte de un lenguaje regular (ya que el procesamiento de lenguajes regulares es lineal sobre la entrada). Además, esta respuesta es óptima, ya que devuelve el autómata con menor número de estados posibles (luego es eficiente en el tamaño).
+
+
+\medskip
+
+\begin{thebibliography}{Widest Entry}
+    \bibitem[1]{Angluin} Dana Angluin (1987), Learning Regular
+    Sets from and Counterexamples, Information and Computation 75 pages
+    87-108.
+    \bibitem[2]{Gold} E. Mark Gold (1978). Complexity of automaton
+    identification from given data, Information and Control 31 pages
+    302-320.
+    \bibitem[3]{Ramirez} Diego Ramirez (2022). Tarea 4 Introducción a
+    la Teoría de la Computation
+    \bibitem[4]{Sipser} Michael Sipser (2013) Introduction to the Theory of
+    Computation Third Edition, Cenage Learning.
+\end{thebibliography}
+
+\end{document}
